@@ -1,6 +1,9 @@
 import { ThemeProvider as CustomThemeProvider, useTheme } from '@/contexts/ThemeContext';
-import { ExpoTextExtractorEngine, ManualEngine, ocrService, RemoteAPIEngine, VLMEngine } from '@/src/services/ocr';
+import { ocrService } from '@/src/services/ocr';
+import { initializeOCREngines } from '@/src/services/ocr/initializeEngines';
 import { storage } from '@/src/services/storage';
+import { CleanupUtil } from '@/src/utils/cleanup';
+import { HealthCheck } from '@/src/utils/healthCheck';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -28,6 +31,7 @@ function RootLayoutContent() {
         <Stack.Screen name="gallery-picker" options={{ headerShown: false }} />
         <Stack.Screen name="search" options={{ title: 'Search' }} />
         <Stack.Screen name="export-import" options={{ title: 'Export & Import' }} />
+        <Stack.Screen name="ai-vendor-settings" options={{ title: 'AI Vendor Settings' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
@@ -41,22 +45,42 @@ export default function RootLayout() {
     // Initialize storage and OCR services
     const initializeApp = async () => {
       try {
-        // Initialize storage
+        console.log('[App] Starting initialization...');
+
+        // Initialize storage (will use AsyncStorage fallback if SQLite fails)
         await storage.initialize();
 
-        // Register OCR engines
-        ocrService.registerEngine('manual', new ManualEngine());
-        ocrService.registerEngine('tesseract', new ExpoTextExtractorEngine());
-        ocrService.registerEngine('remote', new RemoteAPIEngine(''));
-        ocrService.registerEngine('vlm', new VLMEngine());
+        // Show warning if SQLite is not available
+        if (!storage.isSQLiteAvailable()) {
+          console.warn('⚠️ SQLite is not available. Receipt storage will not work. Please rebuild the app with: bun run android');
+        }
 
-        // Set default engine
+        // Initialize OCR engines
+        initializeOCREngines();
+
+        // Set default engine from settings
         const settings = await storage.getSettings();
         ocrService.setDefaultEngine(settings.ocrEngine);
+
+        // Clean up old temporary files in background
+        CleanupUtil.cleanupTempFiles()
+          .then((result: { cleaned: number; errors: number }) => {
+            console.log(`[App] Cleanup: ${result.cleaned} files removed, ${result.errors} errors`);
+          })
+          .catch((error: unknown) => {
+            console.warn('[App] Cleanup failed:', error);
+          });
+
+        // Run health check in background
+        HealthCheck.logStatus().catch((error: unknown) => {
+          console.warn('[App] Health check failed:', error);
+        });
         
+        console.log('[App] Initialization complete');
         setIsInitialized(true);
       } catch (error) {
-        console.error('Failed to initialize app:', error);
+        console.error('[App] Failed to initialize app:', error);
+        // Still mark as initialized to allow app to start
         setIsInitialized(true);
       }
     };

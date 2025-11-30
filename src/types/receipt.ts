@@ -38,10 +38,8 @@ export interface LineItem {
  * Application settings
  */
 export interface AppSettings {
-  ocrEngine: 'vlm' | 'tesseract' | 'remote' | 'manual';
+  ocrEngine: 'manual' | 'native' | 'ai-vendor';
   autoCrop: boolean;
-  tesseractLanguage: string;
-  remoteApiEndpoint?: string;
   theme: 'light' | 'dark' | 'auto';
 }
 

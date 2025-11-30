@@ -41,8 +41,9 @@ export function useCaptureFlow() {
       if (shouldAutoCrop) {
         console.log('[useCaptureFlow] Applying auto-crop...');
         setProgress(30);
-        processedUri = await imageProcessor.autoCrop(processedUri);
-        console.log('[useCaptureFlow] Auto-crop result:', processedUri);
+        const cropResult = await imageProcessor.autoCrop(processedUri);
+        processedUri = cropResult.uri;
+        console.log('[useCaptureFlow] Auto-crop result:', cropResult);
       } else {
         console.log('[useCaptureFlow] Skipping auto-crop');
       }

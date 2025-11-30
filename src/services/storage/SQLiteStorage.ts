@@ -299,7 +299,6 @@ export class SQLiteStorage extends StorageAdapter {
         return {
           ocrEngine: 'manual',
           autoCrop: true,
-          tesseractLanguage: 'eng',
           theme: 'auto',
         };
       }
@@ -310,7 +309,6 @@ export class SQLiteStorage extends StorageAdapter {
       return {
         ocrEngine: 'manual',
         autoCrop: true,
-        tesseractLanguage: 'eng',
         theme: 'auto',
       };
     }

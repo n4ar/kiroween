@@ -20,26 +20,38 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Load theme setting from storage with retry logic
     const loadTheme = async () => {
       let retries = 0;
-      const maxRetries = 20; // 2 seconds max wait
+      const maxRetries = 30; // 3 seconds max wait
       
       while (retries < maxRetries) {
         try {
-          const settings = await storage.getSettings();
-          updateTheme(settings.theme);
-          setIsReady(true);
-          return;
+          // Check if storage is initialized before trying to use it
+          if (storage.isInitialized()) {
+            const settings = await storage.getSettings();
+            updateTheme(settings.theme);
+            setIsReady(true);
+            return;
+          }
+          // Storage not initialized yet, wait and retry
+          retries++;
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
-          // Storage not ready yet, wait and retry
+          // Error getting settings, wait and retry
           retries++;
           if (retries >= maxRetries) {
-            console.error('Error loading theme after retries:', error);
-            // Use default theme
+            // Use default theme after max retries
+            console.warn('Could not load theme settings, using default theme');
+            updateTheme('auto');
             setIsReady(true);
             return;
           }
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
+      
+      // Max retries reached without initialization
+      console.warn('Storage not ready after retries, using default theme');
+      updateTheme('auto');
+      setIsReady(true);
     };
 
     loadTheme();

@@ -2,7 +2,7 @@ import { storage } from '@/src/services/storage';
 import { AppError, Receipt } from '@/src/types';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
