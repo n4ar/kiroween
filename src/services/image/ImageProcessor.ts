@@ -27,15 +27,22 @@ export class ImageProcessor implements IImageProcessor {
       const { width, height } = imageInfo;
       const actions: ImageManipulator.Action[] = [];
 
-      // Resize if dimensions exceed maximum
-      if (width > this.MAX_DIMENSION || height > this.MAX_DIMENSION) {
+      // Resize if dimensions exceed maximum (use >= to catch exact matches)
+      if (width >= this.MAX_DIMENSION || height >= this.MAX_DIMENSION) {
         const scale = this.MAX_DIMENSION / Math.max(width, height);
-        actions.push({
-          resize: {
-            width: Math.round(width * scale),
-            height: Math.round(height * scale),
-          },
-        });
+        const newWidth = Math.round(width * scale);
+        const newHeight = Math.round(height * scale);
+
+        // Ensure dimensions are valid
+        if (newWidth > 0 && newHeight > 0) {
+          actions.push({
+            resize: {
+              width: newWidth,
+              height: newHeight,
+            },
+          });
+          console.log(`[ImageProcessor] Resizing from ${width}x${height} to ${newWidth}x${newHeight}`);
+        }
       }
 
       // Apply compression
@@ -68,9 +75,9 @@ export class ImageProcessor implements IImageProcessor {
    * This method only applies a simple margin-based crop.
    * 
    * @param imageUri - Source image URI
-   * @returns Cropped image URI
+   * @returns Object with cropped image URI and success status
    */
-  async autoCrop(imageUri: string): Promise<string> {
+  async autoCrop(imageUri: string): Promise<{ uri: string; cropped: boolean }> {
     try {
       console.log('[ImageProcessor] Applying simple margin-based crop');
       
@@ -82,6 +89,12 @@ export class ImageProcessor implements IImageProcessor {
 
       const { width, height } = imageInfo;
       
+      // Validate dimensions
+      if (width < 100 || height < 100) {
+        console.warn('[ImageProcessor] Image too small to crop');
+        return { uri: imageUri, cropped: false };
+      }
+      
       // Simple margin-based crop
       const horizontalMargin = 0.05; // 5% from left/right
       const verticalMargin = 0.08;   // 8% from top/bottom
@@ -90,6 +103,12 @@ export class ImageProcessor implements IImageProcessor {
       const cropY = Math.round(height * verticalMargin);
       const cropWidth = Math.round(width * (1 - 2 * horizontalMargin));
       const cropHeight = Math.round(height * (1 - 2 * verticalMargin));
+
+      // Validate crop dimensions
+      if (cropWidth <= 0 || cropHeight <= 0) {
+        console.warn('[ImageProcessor] Invalid crop dimensions');
+        return { uri: imageUri, cropped: false };
+      }
 
       const result = await ImageManipulator.manipulateAsync(
         imageUri,
@@ -110,10 +129,10 @@ export class ImageProcessor implements IImageProcessor {
       );
 
       console.log('[ImageProcessor] Simple crop applied successfully');
-      return result.uri;
+      return { uri: result.uri, cropped: true };
     } catch (error) {
       console.warn('[ImageProcessor] Crop failed, returning original:', error);
-      return imageUri;
+      return { uri: imageUri, cropped: false };
     }
   }
 

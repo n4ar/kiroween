@@ -3,12 +3,12 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
-  Alert,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import DocumentScanner from 'react-native-document-scanner-plugin';
 
@@ -42,22 +42,39 @@ export default function CaptureScreen() {
           pathname: '/ocr-process',
           params: { imageUri },
         });
+      } else {
+        console.warn('[Capture] No images returned from scanner');
       }
     } catch (error) {
       console.error('[Capture] Error scanning document:', error);
       
+      const errorStr = String(error);
+      
       // Check if it's a user cancellation
-      if (error === 'USER_CANCELED' || String(error).includes('cancel')) {
+      if (error === 'USER_CANCELED' || errorStr.includes('cancel') || errorStr.includes('Cancel')) {
         console.log('[Capture] User canceled scan');
         return;
       }
+
+      // Provide specific error messages based on error type
+      let title = 'Scanner Error';
+      let message = 'Failed to open document scanner. Please try again.';
+
+      if (errorStr.includes('permission') || errorStr.includes('Permission')) {
+        title = 'Camera Permission Required';
+        message = 'Camera permission is required to scan documents. Please enable it in your device settings.';
+      } else if (errorStr.includes('camera') || errorStr.includes('Camera')) {
+        title = 'Camera Unavailable';
+        message = 'Camera is not available. Please make sure no other app is using the camera.';
+      } else if (errorStr.includes('Google Play') || errorStr.includes('ML Kit')) {
+        title = 'Scanner Unavailable';
+        message = 'Document scanner requires Google Play Services. Please make sure it is installed and up to date.';
+      } else if (errorStr.includes('not supported') || errorStr.includes('unavailable')) {
+        title = 'Feature Unavailable';
+        message = 'Document scanning is not available on this device. Please use the gallery picker instead.';
+      }
       
-      // Show error for other issues
-      Alert.alert(
-        'Scanner Error',
-        'Failed to open document scanner. Please make sure Google Play Services is up to date and try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert(title, message, [{ text: 'OK' }]);
     } finally {
       setIsScanning(false);
     }

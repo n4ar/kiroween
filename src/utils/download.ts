@@ -36,15 +36,19 @@ export class DownloadUtil {
    */
   private static async downloadImageNative(imageUri: string, filename?: string): Promise<void> {
     // Request permissions
-    const { status } = await MediaLibrary.requestPermissionsAsync();
+    const { status, canAskAgain } = await MediaLibrary.requestPermissionsAsync();
     
     if (status !== 'granted') {
+      const message = canAskAgain
+        ? 'Permission to access photo library is required to download images.'
+        : 'Permission to access photo library was denied. Please enable it in your device settings.';
+
       throw new AppError(
         'Media library permission denied',
         ErrorCode.PERMISSION_DENIED,
         'storage',
-        true,
-        'Permission to access photo library is required to download images.'
+        canAskAgain,
+        message
       );
     }
 
@@ -67,15 +71,24 @@ export class DownloadUtil {
         }
       }
     } catch (error) {
+      console.error('[DownloadUtil] Media library save failed:', error);
+      
       // Fallback to sharing if media library fails
       if (canShare) {
+        console.log('[DownloadUtil] Falling back to share dialog');
         await Sharing.shareAsync(imageUri, {
           mimeType: 'image/jpeg',
           dialogTitle: 'Save Receipt Image',
           UTI: 'public.jpeg',
         });
       } else {
-        throw error;
+        throw new AppError(
+          `Failed to save image: ${error}`,
+          ErrorCode.STORAGE_ERROR,
+          'storage',
+          true,
+          'Failed to save image to photo library. Please try again.'
+        );
       }
     }
   }
@@ -89,6 +102,11 @@ export class DownloadUtil {
     try {
       // Fetch the image
       const response = await fetch(imageUri);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+
       const blob = await response.blob();
       
       // Create download link
@@ -96,17 +114,26 @@ export class DownloadUtil {
       const link = document.createElement('a');
       link.href = url;
       link.download = name;
+      link.style.display = 'none';
       
       // Trigger download
       document.body.appendChild(link);
       link.click();
       
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Cleanup after a delay to ensure download starts
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
     } catch (error) {
       console.error('Web download failed:', error);
-      throw error;
+      throw new AppError(
+        `Web download failed: ${error}`,
+        ErrorCode.STORAGE_ERROR,
+        'storage',
+        true,
+        'Failed to download image. Please try again.'
+      );
     }
   }
 

@@ -2,11 +2,11 @@ import { IOCREngine, LineItem, OCRResult } from '@/src/types';
 import { extractTextFromImage, isSupported } from 'expo-text-extractor';
 
 /**
- * Expo Text Extractor OCR engine
- * Uses native iOS/Android text recognition
+ * Native OCR engine
+ * Uses native iOS/Android text recognition via Expo Text Extractor
  */
-export class ExpoTextExtractorEngine implements IOCREngine {
-  name = 'Expo Text Extractor';
+export class NativeEngine implements IOCREngine {
+  name = 'Native OCR';
 
   /**
    * Process image with Expo Text Extractor
@@ -15,7 +15,7 @@ export class ExpoTextExtractorEngine implements IOCREngine {
     imageUri: string,
     onProgress?: (progress: number) => void
   ): Promise<OCRResult> {
-    console.log('[ExpoTextExtractorEngine] Starting text extraction for:', imageUri);
+    console.log('[NativeEngine] Starting text extraction for:', imageUri);
     
     // Report progress
     if (onProgress) {
@@ -24,9 +24,9 @@ export class ExpoTextExtractorEngine implements IOCREngine {
 
     try {
       // Extract text from image - returns array of text strings
-      console.log('[ExpoTextExtractorEngine] Calling extractTextFromImage...');
+      console.log('[NativeEngine] Calling extractTextFromImage...');
       const textArray = await extractTextFromImage(imageUri);
-      console.log('[ExpoTextExtractorEngine] Extracted text array:', textArray);
+      console.log('[NativeEngine] Extracted text array:', textArray);
       
       if (onProgress) {
         onProgress(50);
@@ -34,7 +34,7 @@ export class ExpoTextExtractorEngine implements IOCREngine {
 
       // Join all text into a single string
       const fullText = textArray.join('\n');
-      console.log('[ExpoTextExtractorEngine] Full text:', fullText);
+      console.log('[NativeEngine] Full text:', fullText);
 
       // Parse the extracted text
       const parsed = this.parseOCRText(fullText);
@@ -52,7 +52,7 @@ export class ExpoTextExtractorEngine implements IOCREngine {
         confidence: 0.8, // Default confidence
       };
     } catch (error) {
-      console.error('[ExpoTextExtractorEngine] Text extraction failed:', error);
+      console.error('[NativeEngine] Text extraction failed:', error);
       if (onProgress) {
         onProgress(100);
       }
@@ -62,13 +62,13 @@ export class ExpoTextExtractorEngine implements IOCREngine {
   }
 
   /**
-   * Check if Expo Text Extractor is available
+   * Check if Native OCR is available
    */
   async isAvailable(): Promise<boolean> {
     try {
       // Check if the module is supported
       if (!isSupported) {
-        console.log('[ExpoTextExtractorEngine] Not supported on this platform');
+        console.log('[NativeEngine] Not supported on this platform');
         return false;
       }
       
@@ -76,7 +76,7 @@ export class ExpoTextExtractorEngine implements IOCREngine {
       // This is more reliable than just checking isSupported
       return true;
     } catch (error) {
-      console.error('[ExpoTextExtractorEngine] Availability check failed:', error);
+      console.error('[NativeEngine] Availability check failed:', error);
       return false;
     }
   }

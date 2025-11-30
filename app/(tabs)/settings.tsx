@@ -27,6 +27,10 @@ export default function SettingsScreen() {
   const [isStorageReady, setIsStorageReady] = useState(false);
 
   useEffect(() => {
+    let retryCount = 0;
+    const MAX_RETRIES = 30; // 3 seconds total (30 * 100ms)
+    let timeoutId: NodeJS.Timeout;
+
     // Wait for storage to be initialized
     const checkStorageReady = async () => {
       try {
@@ -34,13 +38,33 @@ export default function SettingsScreen() {
         await storage.getSettings();
         setIsStorageReady(true);
         loadSettings();
-      } catch {
+      } catch (error) {
+        retryCount++;
+        
+        if (retryCount >= MAX_RETRIES) {
+          console.error('[Settings] Storage initialization timeout after', retryCount, 'retries');
+          setIsLoading(false);
+          Alert.alert(
+            'Storage Error',
+            'Failed to initialize storage. Please restart the app.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+
         // Storage not ready yet, retry after a short delay
-        setTimeout(checkStorageReady, 100);
+        timeoutId = setTimeout(checkStorageReady, 100);
       }
     };
 
     checkStorageReady();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   const loadSettings = async () => {
@@ -101,7 +125,6 @@ export default function SettingsScreen() {
             const defaultSettings: AppSettings = {
               ocrEngine: 'manual',
               autoCrop: true,
-              tesseractLanguage: 'eng',
               theme: 'auto',
             };
             saveSettings(defaultSettings);
@@ -136,19 +159,14 @@ export default function SettingsScreen() {
       description: 'Enter receipt details manually',
     },
     {
-      value: 'tesseract',
+      value: 'native',
       label: 'Native OCR',
       description: 'On-device text recognition (iOS/Android)',
     },
     {
-      value: 'remote',
-      label: 'Remote API',
-      description: 'External OCR service (requires internet)',
-    },
-    {
-      value: 'vlm',
-      label: 'VLM (Donut)',
-      description: 'Vision Language Model for best accuracy',
+      value: 'ai-vendor',
+      label: 'AI Vendor',
+      description: 'Use AI models (OpenAI, Google, Anthropic)',
     },
   ];
 
@@ -215,7 +233,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Engine-Specific Settings */}
-        {settings.ocrEngine === 'tesseract' && (
+        {settings.ocrEngine === 'native' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Native OCR Settings</Text>
             <View style={styles.settingItem}>
@@ -229,22 +247,19 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        {settings.ocrEngine === 'remote' && (
+        {settings.ocrEngine === 'ai-vendor' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Remote API Settings</Text>
+            <Text style={styles.sectionTitle}>AI Vendor Settings</Text>
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => {
-                Alert.alert(
-                  'API Endpoint',
-                  'Endpoint configuration not implemented yet'
-                );
+                router.push('/ai-vendor-settings');
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingLabel}>API Endpoint</Text>
+                <Text style={styles.settingLabel}>Configure AI Vendor</Text>
                 <Text style={styles.settingValue} numberOfLines={1}>
-                  {settings.remoteApiEndpoint || 'Not configured'}
+                  Set up API key and model
                 </Text>
               </View>
               <Ionicons
