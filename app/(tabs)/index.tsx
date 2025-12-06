@@ -1,8 +1,10 @@
 import { useReceipts } from '@/src/hooks/useReceipts';
 import { Receipt } from '@/src/types';
+import { ChatPopup } from '@/src/components/ChatPopup';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -17,6 +19,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { receipts, isLoading, isRefreshing, refresh } = useReceipts();
+  const [chatVisible, setChatVisible] = useState(false);
   
   const styles = createStyles(theme.colors, theme.dark);
 
@@ -115,10 +118,13 @@ export default function HomeScreen() {
       {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push('/(tabs)/capture')}
+        onPress={() => setChatVisible(true)}
       >
-        <Ionicons name="camera" size={28} color="#FFFFFF" />
+        <Ionicons name="chatbubbles" size={28} color="#FFFFFF" />
       </TouchableOpacity>
+
+      {/* Chat Popup */}
+      <ChatPopup visible={chatVisible} onClose={() => setChatVisible(false)} />
     </View>
   );
 }

@@ -2,6 +2,7 @@ import { storage } from '@/src/services/storage';
 import { AppError, Receipt } from '@/src/types';
 import { DownloadUtil } from '@/src/utils/download';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -19,6 +20,7 @@ import {
 export default function ReceiptDetailScreen() {
   const { receiptId } = useLocalSearchParams<{ receiptId: string }>();
   const router = useRouter();
+  const theme = useTheme();
 
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,6 +48,8 @@ export default function ReceiptDetailScreen() {
     loadReceipt();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [receiptId]);
+
+  const styles = createStyles(theme.colors, theme.dark);
 
   const handleDelete = () => {
     Alert.alert(
@@ -79,8 +83,10 @@ export default function ReceiptDetailScreen() {
   };
 
   const handleEdit = () => {
-    // TODO: Navigate to edit screen
-    Alert.alert('Edit', 'Edit functionality not implemented yet');
+    router.push({
+      pathname: '/receipt-edit',
+      params: { receiptId },
+    });
   };
 
   const handleDownload = async () => {
@@ -122,7 +128,7 @@ export default function ReceiptDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color="#6B7F5A" />
       </View>
     );
@@ -130,7 +136,7 @@ export default function ReceiptDetailScreen() {
 
   if (!receipt) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.errorContainer, { backgroundColor: theme.colors.background }]}>
         <Ionicons name="alert-circle-outline" size={64} color="#D64545" />
         <Text style={styles.errorText}>Receipt not found</Text>
       </View>
@@ -256,22 +262,20 @@ export default function ReceiptDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFCF8',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FEFCF8',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FEFCF8',
     padding: 24,
   },
   errorText: {
@@ -285,7 +289,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     height: 300,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: isDark ? '#2C2C2C' : '#F5F5F5',
     padding: 16,
   },
   image: {
@@ -302,12 +306,13 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#2C2C2C',
+    color: colors.text,
   },
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B6B6B',
+    color: colors.text,
+    opacity: 0.6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
@@ -320,7 +325,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 16,
-    color: '#2C2C2C',
+    color: colors.text,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -328,38 +333,41 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tag: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#F5F5F5',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
   tagText: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.text,
+    opacity: 0.8,
     fontWeight: '500',
   },
   ocrContainer: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: isDark ? '#2C2C2C' : '#F5F5F5',
     borderRadius: 8,
     padding: 12,
   },
   ocrText: {
     fontSize: 12,
-    color: '#6B6B6B',
+    color: colors.text,
+    opacity: 0.7,
     fontFamily: 'JetBrains Mono',
     lineHeight: 18,
   },
   metaText: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.text,
+    opacity: 0.6,
     fontFamily: 'JetBrains Mono',
   },
   actionContainer: {
     padding: 16,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
   },
   topActionRow: {
     flexDirection: 'row',
@@ -370,7 +378,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: isDark ? '#2C2C2C' : '#F5F5F5',
     borderRadius: 12,
     padding: 16,
   },

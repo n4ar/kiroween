@@ -3,6 +3,7 @@ import { importService } from '@/src/services/export/ImportService';
 import { ImportStrategy } from '@/src/types';
 import { validatePassword } from '@/src/utils/encryption';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ import {
 } from 'react-native';
 
 export default function ExportImportScreen() {
+  const theme = useTheme();
   const [storageInfo, setStorageInfo] = useState<{
     totalSize: number;
     imageCount: number;
@@ -211,11 +213,13 @@ export default function ExportImportScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color="#6B7F5A" />
       </View>
     );
   }
+
+  const styles = createStyles(theme.colors, theme.dark);
 
   return (
     <View style={styles.container}>
@@ -249,7 +253,7 @@ export default function ExportImportScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Export Data</Text>
           <View style={styles.card}>
-            <Ionicons name="cloud-upload-outline" size={48} color="#6B7F5A" />
+            <Ionicons name="download-outline" size={48} color="#6B7F5A" />
             <Text style={styles.cardTitle}>Backup Your Data</Text>
             <Text style={styles.cardDescription}>
               Export all your receipts to an encrypted ZIP file. You&apos;ll need to
@@ -276,7 +280,7 @@ export default function ExportImportScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Import Data</Text>
           <View style={styles.card}>
-            <Ionicons name="cloud-download-outline" size={48} color="#6B7F5A" />
+            <Ionicons name="cloud-upload-outline" size={48} color="#6B7F5A" />
             <Text style={styles.cardTitle}>Restore Your Data</Text>
             <Text style={styles.cardDescription}>
               Import receipts from a previously exported backup. You&apos;ll need the
@@ -312,16 +316,15 @@ export default function ExportImportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFCF8',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FEFCF8',
   },
   scrollView: {
     flex: 1,
@@ -333,13 +336,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B6B6B',
+    color: colors.text,
+    opacity: 0.6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
   },
   infoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -354,11 +358,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: colors.border,
   },
   infoLabel: {
     fontSize: 16,
-    color: '#2C2C2C',
+    color: colors.text,
   },
   infoValue: {
     fontSize: 16,
@@ -367,7 +371,7 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrains Mono',
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
@@ -380,13 +384,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2C2C2C',
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8,
   },
   cardDescription: {
     fontSize: 14,
-    color: '#6B6B6B',
+    color: colors.text,
+    opacity: 0.7,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -412,7 +417,7 @@ const styles = StyleSheet.create({
   },
   noticeCard: {
     flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: isDark ? '#2C2C2C' : '#F5F5F5',
     borderRadius: 12,
     padding: 16,
     margin: 16,
@@ -422,7 +427,8 @@ const styles = StyleSheet.create({
   noticeText: {
     flex: 1,
     fontSize: 13,
-    color: '#6B6B6B',
+    color: colors.text,
+    opacity: 0.7,
     lineHeight: 18,
   },
 });

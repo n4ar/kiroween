@@ -1,25 +1,17 @@
 import { storage } from '@/src/services/storage';
 import { AppError, ErrorCode } from '@/src/types';
 import { encryptDataWithPassword } from '@/src/utils/encryption';
-import { Directory, File, Paths } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { zip } from 'react-native-zip-archive';
 
-/**
- * Export service for creating encrypted backups
- */
 export class ExportService {
-  /**
-   * Export all receipts to an encrypted ZIP file
-   */
   async exportData(password: string): Promise<string> {
-    const tempDir = new Directory(Paths.cache, `export_${Date.now()}`);
+    const tempDir = `${FileSystem.cacheDirectory}export_${Date.now()}/`;
     
     try {
-      // Create temporary directory
-      tempDir.create({ intermediates: true });
+      await FileSystem.makeDirectoryAsync(tempDir, { intermediates: true });
       
-      // Get all receipts
       const receipts = await storage.getAllReceipts();
       
       if (receipts.length === 0) {
@@ -32,7 +24,6 @@ export class ExportService {
         );
       }
       
-      // Prepare metadata
       const metadata = {
         version: '1.0.0',
         exportDate: new Date().toISOString(),
@@ -45,55 +36,40 @@ export class ExportService {
         })),
       };
       
-      // Encrypt metadata with password
       const metadataJson = JSON.stringify(metadata, null, 2);
       const { encrypted, salt } = await encryptDataWithPassword(metadataJson, password);
       
-      // Save encrypted metadata
-      const metadataFile = tempDir.createFile('metadata.enc', 'text/plain');
-      metadataFile.write(encrypted);
+      await FileSystem.writeAsStringAsync(`${tempDir}metadata.enc`, encrypted);
+      await FileSystem.writeAsStringAsync(`${tempDir}salt.txt`, salt);
       
-      // Save salt separately
-      const saltFile = tempDir.createFile('salt.txt', 'text/plain');
-      saltFile.write(salt);
+      const imagesDir = `${tempDir}images/`;
+      await FileSystem.makeDirectoryAsync(imagesDir);
       
-      // Create images directory
-      const imagesDir = new Directory(tempDir, 'images');
-      imagesDir.create();
-      
-      // Copy images
       for (const receipt of receipts) {
         const imageUri = await storage.getImage(receipt.id);
         if (imageUri) {
           const extension = imageUri.split('.').pop() || 'jpg';
-          const sourceFile = new File(imageUri);
-          const destFile = imagesDir.createFile(`${receipt.id}.${extension}`, null);
-          sourceFile.copy(destFile);
+          await FileSystem.copyAsync({
+            from: imageUri,
+            to: `${imagesDir}${receipt.id}.${extension}`,
+          });
         }
       }
       
-      // Create ZIP file
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const zipFileName = `paperkeep-backup-${timestamp}.zip`;
-      const zipFile = new Directory(Paths.document).createFile(zipFileName, 'application/zip');
+      const zipFileName = `resight-backup-${timestamp}.zip`;
+      const zipPath = `${FileSystem.documentDirectory}${zipFileName}`;
       
-      await zip(tempDir.uri, zipFile.uri);
+      await zip(tempDir, zipPath);
+      await FileSystem.deleteAsync(tempDir, { idempotent: true });
       
-      // Clean up temp directory
-      tempDir.delete();
-      
-      return zipFile.uri;
+      return zipPath;
     } catch (error) {
-      // Clean up on error
       try {
-        if (tempDir.exists) {
-          tempDir.delete();
-        }
+        await FileSystem.deleteAsync(tempDir, { idempotent: true });
       } catch {}
       
-      if (error instanceof AppError) {
-        throw error;
-      }
+      if (error instanceof AppError) throw error;
       
       throw new AppError(
         `Export failed: ${error}`,
@@ -105,9 +81,6 @@ export class ExportService {
     }
   }
   
-  /**
-   * Share the exported ZIP file
-   */
   async shareExport(zipPath: string): Promise<void> {
     try {
       const isAvailable = await Sharing.isAvailableAsync();
@@ -118,7 +91,7 @@ export class ExportService {
       
       await Sharing.shareAsync(zipPath, {
         mimeType: 'application/zip',
-        dialogTitle: 'Export Paperkeep Data',
+        dialogTitle: 'Export Resight Data',
       });
     } catch (error) {
       throw new AppError(
@@ -131,9 +104,6 @@ export class ExportService {
     }
   }
   
-  /**
-   * Get storage information
-   */
   async getStorageInfo(): Promise<{
     totalSize: number;
     imageCount: number;
